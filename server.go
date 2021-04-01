@@ -74,5 +74,9 @@ func (s *Server) Remove(nodeID string) {
 //
 // Date : 5:17 下午 2021/4/1
 func (s *Server) Get() (string, *define.Error) {
+	_ = s.lock.RLock()
+	defer func() {
+		_ = s.lock.RUnlock()
+	}()
 	return s.Balance.Get(s.NodeList)
 }
