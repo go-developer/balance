@@ -8,20 +8,22 @@
 package balance
 
 import (
+	"github.com/go-developer/balance/define"
+	"github.com/go-developer/balance/dispatch"
 	"github.com/go-developer/gopkg/easylock"
 )
 
-// SeverNode 服务器节点的数据结构
+//  ...
 //
 // Author : go_developer@163.com<张德满>
 //
-// Date : 2:46 下午 2021/4/1
-type SeverNode struct {
-	ID     string  `json:"id"`     // 机器编号
-	Host   string  `json:"host"`   // ip
-	Port   int     `json:"port"`   // 端口
-	Weight float64 `json:"weight"` // 权重
-	Status int     `json:"status"` // 状态
+// Date : 6:51 下午 2021/4/1
+func NewServer(nodeList []*define.SeverNode, d dispatch.IDispatch) *Server {
+	return &Server{
+		lock:     easylock.NewLock(),
+		NodeList: nodeList,
+		Balance:  d,
+	}
 }
 
 // Server server 的具体配置
@@ -31,8 +33,8 @@ type SeverNode struct {
 // Date : 2:59 下午 2021/4/1
 type Server struct {
 	lock     easylock.EasyLock
-	NodeList []*SeverNode
-	Balance  IBalance
+	NodeList []*define.SeverNode
+	Balance  dispatch.IDispatch
 }
 
 // Add 添加一个Server
@@ -40,9 +42,11 @@ type Server struct {
 // Author : go_developer@163.com<张德满>
 //
 // Date : 3:00 下午 2021/4/1
-func (s *Server) Add(node *SeverNode) {
+func (s *Server) Add(node *define.SeverNode) {
 	_ = s.lock.Lock()
-	defer s.lock.Unlock()
+	defer func() {
+		_ = s.lock.Unlock()
+	}()
 	s.NodeList = append(s.NodeList, node)
 }
 
@@ -53,7 +57,9 @@ func (s *Server) Add(node *SeverNode) {
 // Date : 5:09 下午 2021/4/1
 func (s *Server) Remove(nodeID string) {
 	_ = s.lock.Lock()
-	defer s.lock.Unlock()
+	defer func() {
+		_ = s.lock.Unlock()
+	}()
 	for nodeIndex, item := range s.NodeList {
 		if item.ID == nodeID {
 			s.NodeList = append(s.NodeList[0:nodeIndex], s.NodeList[nodeIndex:]...)
@@ -67,17 +73,6 @@ func (s *Server) Remove(nodeID string) {
 // Author : go_developer@163.com<张德满>
 //
 // Date : 5:17 下午 2021/4/1
-func (s *Server) Get() string {
-	return ""
-}
-
-// IBalance 负载均衡的接口定义
-//
-// Author : go_developer@163.com<张德满>
-//
-// Date : 2:44 下午 2021/4/1
-type IBalance interface {
-	Get() string
-	Add(node string)
-	Remove(node string)
+func (s *Server) Get() (string, *define.Error) {
+	return s.Balance.Get(s.NodeList)
 }
