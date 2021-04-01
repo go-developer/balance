@@ -49,6 +49,10 @@ func (r *RoundRobin) Get(nodeList []*define.SeverNode) (string, *define.Error) {
 	defer func() {
 		_ = r.lock.Unlock()
 	}()
+	if r.nextNodeIndex >= len(nodeList) {
+		// 记录过索引之后, 在下次访问之前, 可能移除了某些节点, 所以要检测越界
+		r.nextNodeIndex = len(nodeList) - 1
+	}
 	node := fmt.Sprintf("%s:%d", nodeList[r.nextNodeIndex].Host, nodeList[r.nextNodeIndex].Port)
 	r.nextNodeIndex = (r.nextNodeIndex + 1) % len(nodeList)
 	return node, nil
